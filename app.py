@@ -24,7 +24,7 @@ db.init_db()
 WEEKDAYS_KOR = ["일", "월", "화", "수", "목", "금", "토"]
 
 # 캘린더 표시 범위 (오늘부터 N일)
-CALENDAR_DAYS = 90
+CALENDAR_DAYS = 365
 
 # 월별 테마: 라벨 + 대표 이모지(스티커) + 영문 표기
 MONTH_THEMES = {
