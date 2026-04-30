@@ -313,6 +313,52 @@ textarea { resize: vertical; }
   transform: scale(1.05) rotate(-1deg);
 }
 
+/* ── Tabs (메뉴 네비게이션) ───────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #fffdf6;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  padding: 6px;
+  box-shadow: var(--shadow-hard);
+}
+.tab {
+  flex: 1 1 0;
+  min-width: 100px;
+  border: none;
+  background: transparent;
+  padding: 12px 18px;
+  border-radius: 999px;
+  font-family: "Bagel Fat One", sans-serif;
+  font-size: .95rem;
+  letter-spacing: .3px;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background .15s, transform .08s, color .15s;
+  white-space: nowrap;
+}
+.tab:hover { background: #fef3c7; }
+.tab.is-active {
+  background: var(--ink);
+  color: var(--accent-3);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 0 var(--accent);
+}
+.tab-panel { display: none; animation: fadeIn .25s ease-out; }
+.tab-panel.is-active { display: flex; flex-direction: column; gap: 22px; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 600px) {
+  .tabs { padding: 4px; gap: 4px; }
+  .tab  { padding: 10px 8px; font-size: .8rem; min-width: 0; }
+}
+
 /* ── Finalized banner ────────────────────────────────────── */
 .finalized-card {
   background: linear-gradient(135deg, #fde047 0%, #fbbf24 50%, #f97316 100%);

@@ -4,7 +4,7 @@
 {% block content %}
 <section class="card">
   <h1>우리 언제 볼래? 🗓️</h1>
-  <p class="muted small">가능한 날짜를 골라주세요. 같은 이름으로 다시 저장하면 수정됩니다.</p>
+  <p class="muted small">링크를 공유하고 각자 가능한 날짜를 골라주세요.</p>
 
   <div class="share-box">
     <span class="muted small">공유 링크</span>
@@ -15,7 +15,7 @@
   </div>
 </section>
 
-{# ── 확정된 경우 상단에 크게 ───────────────────────────────── #}
+{# ── 확정된 경우 상단 배너 (항상 표시) ───────────────────── #}
 {% if finalized_date %}
 <section class="card finalized-card">
   <span class="finalized-badge">CONFIRMED ✦</span>
@@ -28,10 +28,18 @@
 </section>
 {% endif %}
 
-{# ── 1. 내 가능일 입력 ─────────────────────────────────────── #}
+{# ── 탭 네비게이션 ────────────────────────────────────────── #}
+<nav class="tabs" role="tablist">
+  <button class="tab is-active" data-tab="pick"   type="button">✏️ 내 가능일</button>
+  <button class="tab"            data-tab="all"    type="button">⭐ 모두 되는 날</button>
+  <button class="tab"            data-tab="status" type="button">📊 응답 현황</button>
+</nav>
+
+{# ── [탭 1] 내 가능일 입력 ───────────────────────────────── #}
+<div class="tab-panel is-active" data-panel="pick">
 {% if not finalized_date %}
 <section class="card">
-  <h2>1️⃣ 내 가능한 날짜 선택</h2>
+  <h2>내 가능한 날짜 선택</h2>
 
   <form method="post" action="{{ url_for('save_response', slug=slug) }}"
         id="availForm" class="stack">
@@ -94,14 +102,21 @@
     </div>
   </form>
 </section>
-{% endif %}
-
-{# ── 2. 모두 가능한 날 + 최종 확정 ─────────────────────────── #}
+{% else %}
 <section class="card">
-  <h2>2️⃣ 모두 가능한 날 ({{ total_people }}명 응답)</h2>
+  <h2>내 가능일</h2>
+  <p class="muted">이미 날짜가 확정되어 응답을 수정할 수 없어요. 확정을 취소하면 다시 수정할 수 있어요.</p>
+</section>
+{% endif %}
+</div>
+
+{# ── [탭 2] 모두 가능한 날 + 확정 ────────────────────────── #}
+<div class="tab-panel" data-panel="all">
+<section class="card">
+  <h2>모두 가능한 날 ({{ total_people }}명 응답)</h2>
 
   {% if total_people == 0 %}
-    <p class="muted">아직 아무도 응답하지 않았어요. 첫 번째로 가능일을 선택해보세요.</p>
+    <p class="muted">아직 아무도 응답하지 않았어요. <strong>내 가능일</strong> 탭에서 첫 번째로 가능일을 선택해보세요.</p>
   {% else %}
     <div class="participant-chips">
       {% for p in participants %}
@@ -144,11 +159,15 @@
     {% endif %}
   {% endif %}
 </section>
+</div>
 
-{# ── 3. 날짜별 응답 현황 ───────────────────────────────────── #}
-{% if total_people > 0 %}
+{# ── [탭 3] 날짜별 응답 현황 ─────────────────────────────── #}
+<div class="tab-panel" data-panel="status">
 <section class="card">
-  <h2>3️⃣ 날짜별 응답 현황</h2>
+  <h2>날짜별 응답 현황</h2>
+  {% if total_people == 0 %}
+    <p class="muted">아직 응답이 없어요.</p>
+  {% else %}
   <p class="muted small">색이 진할수록 더 많은 사람이 가능해요. 마우스를 올리면 누가 가능한지 보여요.</p>
 
   <div class="cal-container" data-mode="view">
@@ -192,13 +211,29 @@
     </div>
     {% endfor %}
   </div>
+  {% endif %}
 </section>
-{% endif %}
+</div>
 {% endblock %}
 
 {% block scripts %}
 <script>
 (() => {
+  // ── 탭 전환 ─────────────────────────────────────────────
+  const tabs   = document.querySelectorAll('.tab');
+  const panels = document.querySelectorAll('.tab-panel');
+  function activate(name) {
+    tabs.forEach(t => t.classList.toggle('is-active', t.dataset.tab === name));
+    panels.forEach(p => p.classList.toggle('is-active', p.dataset.panel === name));
+    history.replaceState(null, '', '#' + name);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+  tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.tab)));
+
+  // URL 해시로 초기 탭 결정 (예: #all)
+  const initial = (location.hash || '').replace('#', '');
+  if (['pick', 'all', 'status'].includes(initial)) activate(initial);
+
   // ── 공유 링크 복사 ─────────────────────────────────────
   const copyBtn = document.getElementById("copyBtn");
   if (copyBtn) {
@@ -219,18 +254,16 @@
   const editCal = document.querySelector('.cal-container[data-mode="edit"]');
   if (!editCal) return;
 
-  const initial = JSON.parse(editCal.dataset.mine || "[]");
-  const selected = new Set(initial);
+  const initialDates = JSON.parse(editCal.dataset.mine || "[]");
+  const selected = new Set(initialDates);
 
   const cells = editCal.querySelectorAll('.cal-cell[data-in-range="1"]');
-  cells.forEach(c => {
-    if (selected.has(c.dataset.iso)) c.classList.add("selected");
-  });
+  cells.forEach(c => { if (selected.has(c.dataset.iso)) c.classList.add("selected"); });
 
-  const hidden    = document.getElementById("hiddenDates");
-  const selCount  = document.getElementById("selCount");
-  const clearBtn  = document.getElementById("clearBtn");
-  const form      = document.getElementById("availForm");
+  const hidden   = document.getElementById("hiddenDates");
+  const selCount = document.getElementById("selCount");
+  const clearBtn = document.getElementById("clearBtn");
+  const form     = document.getElementById("availForm");
 
   function syncHidden() {
     hidden.innerHTML = "";
@@ -243,34 +276,23 @@
   }
   syncHidden();
 
-  // 드래그 상태
-  let dragging   = false;
-  let dragMode   = null;   // 'add' | 'remove' — 드래그 시작 셀의 반대 동작 적용
-  let touchedSet = null;   // 이번 드래그에서 이미 처리한 셀(중복 방지)
+  let dragging = false, dragMode = null, touchedSet = null;
 
   function applyCell(cell) {
     if (cell.dataset.inRange !== "1") return;
     const iso = cell.dataset.iso;
     if (touchedSet.has(iso)) return;
     touchedSet.add(iso);
-
-    if (dragMode === "add") {
-      selected.add(iso);
-      cell.classList.add("selected");
-    } else {
-      selected.delete(iso);
-      cell.classList.remove("selected");
-    }
+    if (dragMode === "add") { selected.add(iso); cell.classList.add("selected"); }
+    else                    { selected.delete(iso); cell.classList.remove("selected"); }
   }
-
   function onDown(e) {
     const cell = e.target.closest('.cal-cell');
     if (!cell || cell.dataset.inRange !== "1") return;
     e.preventDefault();
-    dragging   = true;
+    dragging = true;
     touchedSet = new Set();
-    const iso  = cell.dataset.iso;
-    dragMode   = selected.has(iso) ? "remove" : "add";
+    dragMode = selected.has(cell.dataset.iso) ? "remove" : "add";
     applyCell(cell);
   }
   function onMove(e) {
@@ -280,11 +302,7 @@
     const cell = el && el.closest('.cal-cell');
     if (cell && editCal.contains(cell)) applyCell(cell);
   }
-  function onUp() {
-    if (!dragging) return;
-    dragging = false;
-    syncHidden();
-  }
+  function onUp() { if (dragging) { dragging = false; syncHidden(); } }
 
   editCal.addEventListener("mousedown",  onDown);
   editCal.addEventListener("touchstart", onDown, { passive: false });
@@ -292,11 +310,8 @@
   document.addEventListener("touchmove", onMove, { passive: false });
   document.addEventListener("mouseup",   onUp);
   document.addEventListener("touchend",  onUp);
-
-  // 드래그가 시작되지 않은 상태에서 텍스트 드래그 방지
   editCal.addEventListener("dragstart", e => e.preventDefault());
 
-  // 전체 해제
   if (clearBtn) {
     clearBtn.addEventListener("click", () => {
       selected.clear();
@@ -304,8 +319,6 @@
       syncHidden();
     });
   }
-
-  // 폼 제출 시: 선택 0개여도 서버에 빈 배열 전송 (완전 해제 의도 반영)
   form.addEventListener("submit", () => syncHidden());
 })();
 </script>
