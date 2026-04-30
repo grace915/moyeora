@@ -1,0 +1,21 @@
+# Render 자동 배포 설정 — GitHub 리포 연결 후 그대로 인식됨
+services:
+  - type: web
+    name: moyeora
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: DB_PATH
+        value: /var/data/moyeora.db
+      - key: PYTHON_VERSION
+        value: 3.12.5
+    disk:
+      name: moyeora-data
+      mountPath: /var/data
+      sizeGB: 1

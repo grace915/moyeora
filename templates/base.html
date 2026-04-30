@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}통학팸 적금깨기 프로젝트{% endblock %} — 통학팸 적금깨기</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Bowlby+One&family=Rubik+Mono+One&family=Gaegu:wght@400;700&family=Pretendard:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="logo-wrap">
+      <a href="{{ url_for('index') }}" class="logo">🚌💸 통학팸 적금깨기</a>
+      <span class="tagline">언제 다 같이 모일까? · 한 번에 정하기</span>
+    </div>
+    <span class="header-stickers">✨ ⭐ ✨</span>
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-area">
+          {% for cat, msg in messages %}
+            <div class="flash flash-{{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="site-footer">
+    <small>made with 💛 · 통학팸 적금깨기 프로젝트</small>
+  </footer>
+
+  {% block scripts %}{% endblock %}
+</body>
+</html>

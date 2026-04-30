@@ -1,0 +1,312 @@
+{% extends "base.html" %}
+{% block title %}우리 언제 볼래?{% endblock %}
+
+{% block content %}
+<section class="card">
+  <h1>우리 언제 볼래? 🗓️</h1>
+  <p class="muted small">가능한 날짜를 골라주세요. 같은 이름으로 다시 저장하면 수정됩니다.</p>
+
+  <div class="share-box">
+    <span class="muted small">공유 링크</span>
+    <input type="text" readonly id="shareUrl"
+           value="{{ url_for('view_event', slug=slug, _external=True) }}"
+           onclick="this.select()" />
+    <button type="button" class="btn-link" id="copyBtn">복사</button>
+  </div>
+</section>
+
+{# ── 확정된 경우 상단에 크게 ───────────────────────────────── #}
+{% if finalized_date %}
+<section class="card finalized-card">
+  <span class="finalized-badge">CONFIRMED ✦</span>
+  <h2 class="finalized-title">🎉 우리 이날 만나요!</h2>
+  <p class="finalized-date">{{ finalized_date | fmt_date }}</p>
+  <form method="post" action="{{ url_for('unfinalize', slug=slug) }}" style="margin-top: 12px">
+    <button type="submit" class="btn-link"
+            onclick="return confirm('확정을 취소할까요?')">확정 취소</button>
+  </form>
+</section>
+{% endif %}
+
+{# ── 1. 내 가능일 입력 ─────────────────────────────────────── #}
+{% if not finalized_date %}
+<section class="card">
+  <h2>1️⃣ 내 가능한 날짜 선택</h2>
+
+  <form method="post" action="{{ url_for('save_response', slug=slug) }}"
+        id="availForm" class="stack">
+    <label class="field">
+      <span>내 이름 *</span>
+      <input type="text" name="name" id="nameInput" required maxlength="40"
+             value="{{ current_name }}"
+             placeholder="이름을 입력하세요. 같은 이름이면 기존 응답을 수정합니다." />
+    </label>
+
+    <div class="cal-help">
+      <span class="muted small">
+        💡 클릭 또는 <strong>드래그</strong>로 날짜 선택. 한번 더 누르면 해제.
+      </span>
+      <button type="button" class="btn-link" id="clearBtn">전체 해제</button>
+    </div>
+
+    <div class="cal-container" id="calContainer"
+         data-mode="edit"
+         data-mine='{{ my_availability | tojson }}'>
+      {% for m in months %}
+      <div class="cal-month" data-month="{{ m.month }}">
+        <div class="cal-poster-head">
+          <span class="cal-tag">{{ m.theme.tagline }}</span>
+          <div class="cal-year">{{ m.year }}</div>
+          <div class="cal-month-name">{{ m.theme.name }}</div>
+          <div class="cal-month-ko">{{ m.theme.ko }}</div>
+          <div class="cal-stickers">
+            {% for s in m.theme.stickers %}<span class="sticker s{{ loop.index }}">{{ s }}</span>{% endfor %}
+          </div>
+        </div>
+        <div class="cal-grid">
+          {% for wd in weekday_labels %}
+            <div class="cal-wd {% if loop.index0 == 5 %}sat{% elif loop.index0 == 6 %}sun{% endif %}">{{ wd }}</div>
+          {% endfor %}
+          {% for week in m.weeks %}
+            {% for cell in week %}
+              {% if cell is none %}
+                <div class="cal-cell empty"></div>
+              {% else %}
+                <div class="cal-cell {% if not cell.in_range %}disabled{% endif %}
+                            {% if cell.weekday == 5 %}sat{% elif cell.weekday == 6 %}sun{% endif %}"
+                     data-iso="{{ cell.iso }}"
+                     data-in-range="{{ '1' if cell.in_range else '0' }}">
+                  <span class="cal-day">{{ cell.day }}</span>
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div id="hiddenDates"></div>
+
+    <div class="action-row">
+      <button type="submit" class="btn-primary">내 가능일 저장</button>
+      <span class="muted small" id="selCount">0일 선택됨</span>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+{# ── 2. 모두 가능한 날 + 최종 확정 ─────────────────────────── #}
+<section class="card">
+  <h2>2️⃣ 모두 가능한 날 ({{ total_people }}명 응답)</h2>
+
+  {% if total_people == 0 %}
+    <p class="muted">아직 아무도 응답하지 않았어요. 첫 번째로 가능일을 선택해보세요.</p>
+  {% else %}
+    <div class="participant-chips">
+      {% for p in participants %}
+        <span class="chip {% if p == current_name %}chip-me{% endif %}">{{ p }}</span>
+      {% endfor %}
+    </div>
+
+    {% if everyone_dates %}
+      {% if finalized_date %}
+        <p class="muted small" style="margin-top: 14px">
+          {{ total_people }}명 모두 가능한 날 {{ everyone_dates|length }}개 중
+          <strong>{{ finalized_date | fmt_date }}</strong> 로 확정되었어요.
+        </p>
+        <ul class="everyone-list">
+          {% for d in everyone_dates %}
+            <li class="{% if d == finalized_date %}is-final{% endif %}">{{ d | fmt_date }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted small" style="margin-top: 14px">
+          🎉 아래 {{ everyone_dates|length }}일은 <strong>{{ total_people }}명 모두</strong> 가능해요!<br/>
+          이 중 하나를 골라서 <strong>최종 날짜로 확정</strong>해보세요.
+        </p>
+        <form method="post" action="{{ url_for('finalize', slug=slug) }}" class="stack">
+          <div class="finalize-options">
+            {% for d in everyone_dates %}
+              <label class="finalize-option">
+                <input type="radio" name="final_date" value="{{ d }}" required />
+                <span>{{ d | fmt_date }}</span>
+              </label>
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn-primary">이 날짜로 확정 🎉</button>
+        </form>
+      {% endif %}
+    {% else %}
+      <p class="muted" style="margin-top: 14px">
+        아직 모두가 가능한 공통 날짜가 없어요. 다른 친구들에게도 링크를 공유해보세요!
+      </p>
+    {% endif %}
+  {% endif %}
+</section>
+
+{# ── 3. 날짜별 응답 현황 ───────────────────────────────────── #}
+{% if total_people > 0 %}
+<section class="card">
+  <h2>3️⃣ 날짜별 응답 현황</h2>
+  <p class="muted small">색이 진할수록 더 많은 사람이 가능해요. 마우스를 올리면 누가 가능한지 보여요.</p>
+
+  <div class="cal-container" data-mode="view">
+    {% for m in months %}
+    <div class="cal-month" data-month="{{ m.month }}">
+      <div class="cal-poster-head">
+        <span class="cal-tag">{{ m.theme.tagline }}</span>
+        <div class="cal-year">{{ m.year }}</div>
+        <div class="cal-month-name">{{ m.theme.name }}</div>
+        <div class="cal-month-ko">{{ m.theme.ko }}</div>
+        <div class="cal-stickers">
+          {% for s in m.theme.stickers %}<span class="sticker s{{ loop.index }}">{{ s }}</span>{% endfor %}
+        </div>
+      </div>
+      <div class="cal-grid">
+        {% for wd in weekday_labels %}
+          <div class="cal-wd {% if loop.index0 == 5 %}sat{% elif loop.index0 == 6 %}sun{% endif %}">{{ wd }}</div>
+        {% endfor %}
+        {% for week in m.weeks %}
+          {% for cell in week %}
+            {% if cell is none %}
+              <div class="cal-cell empty"></div>
+            {% else %}
+              {% set names = date_counts.get(cell.iso, []) %}
+              {% set count = names | length %}
+              {% set ratio = (count / total_people) if total_people > 0 else 0 %}
+              {% set is_all = total_people > 0 and count == total_people %}
+              <div class="cal-cell view
+                          {% if not cell.in_range %}disabled{% endif %}
+                          {% if is_all %}all-can{% endif %}
+                          heat-{{ ((ratio * 4) | round(0, 'floor')) | int }}
+                          {% if cell.weekday == 5 %}sat{% elif cell.weekday == 6 %}sun{% endif %}"
+                   title="{{ '가능: ' ~ (names | join(', ')) if names else '아직 없음' }}">
+                <span class="cal-day">{{ cell.day }}</span>
+                {% if count > 0 %}<span class="cal-count">{{ count }}</span>{% endif %}
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+  // ── 공유 링크 복사 ─────────────────────────────────────
+  const copyBtn = document.getElementById("copyBtn");
+  if (copyBtn) {
+    copyBtn.addEventListener("click", async () => {
+      const inp = document.getElementById("shareUrl");
+      try {
+        await navigator.clipboard.writeText(inp.value);
+        const old = copyBtn.textContent;
+        copyBtn.textContent = "복사됨!";
+        setTimeout(() => copyBtn.textContent = old, 1500);
+      } catch {
+        inp.select(); document.execCommand("copy");
+      }
+    });
+  }
+
+  // ── 편집 모드 캘린더: 드래그 선택 ─────────────────────
+  const editCal = document.querySelector('.cal-container[data-mode="edit"]');
+  if (!editCal) return;
+
+  const initial = JSON.parse(editCal.dataset.mine || "[]");
+  const selected = new Set(initial);
+
+  const cells = editCal.querySelectorAll('.cal-cell[data-in-range="1"]');
+  cells.forEach(c => {
+    if (selected.has(c.dataset.iso)) c.classList.add("selected");
+  });
+
+  const hidden    = document.getElementById("hiddenDates");
+  const selCount  = document.getElementById("selCount");
+  const clearBtn  = document.getElementById("clearBtn");
+  const form      = document.getElementById("availForm");
+
+  function syncHidden() {
+    hidden.innerHTML = "";
+    selected.forEach(d => {
+      const i = document.createElement("input");
+      i.type = "hidden"; i.name = "dates"; i.value = d;
+      hidden.appendChild(i);
+    });
+    selCount.textContent = `${selected.size}일 선택됨`;
+  }
+  syncHidden();
+
+  // 드래그 상태
+  let dragging   = false;
+  let dragMode   = null;   // 'add' | 'remove' — 드래그 시작 셀의 반대 동작 적용
+  let touchedSet = null;   // 이번 드래그에서 이미 처리한 셀(중복 방지)
+
+  function applyCell(cell) {
+    if (cell.dataset.inRange !== "1") return;
+    const iso = cell.dataset.iso;
+    if (touchedSet.has(iso)) return;
+    touchedSet.add(iso);
+
+    if (dragMode === "add") {
+      selected.add(iso);
+      cell.classList.add("selected");
+    } else {
+      selected.delete(iso);
+      cell.classList.remove("selected");
+    }
+  }
+
+  function onDown(e) {
+    const cell = e.target.closest('.cal-cell');
+    if (!cell || cell.dataset.inRange !== "1") return;
+    e.preventDefault();
+    dragging   = true;
+    touchedSet = new Set();
+    const iso  = cell.dataset.iso;
+    dragMode   = selected.has(iso) ? "remove" : "add";
+    applyCell(cell);
+  }
+  function onMove(e) {
+    if (!dragging) return;
+    const point = e.touches ? e.touches[0] : e;
+    const el = document.elementFromPoint(point.clientX, point.clientY);
+    const cell = el && el.closest('.cal-cell');
+    if (cell && editCal.contains(cell)) applyCell(cell);
+  }
+  function onUp() {
+    if (!dragging) return;
+    dragging = false;
+    syncHidden();
+  }
+
+  editCal.addEventListener("mousedown",  onDown);
+  editCal.addEventListener("touchstart", onDown, { passive: false });
+  document.addEventListener("mousemove", onMove);
+  document.addEventListener("touchmove", onMove, { passive: false });
+  document.addEventListener("mouseup",   onUp);
+  document.addEventListener("touchend",  onUp);
+
+  // 드래그가 시작되지 않은 상태에서 텍스트 드래그 방지
+  editCal.addEventListener("dragstart", e => e.preventDefault());
+
+  // 전체 해제
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      selected.clear();
+      cells.forEach(c => c.classList.remove("selected"));
+      syncHidden();
+    });
+  }
+
+  // 폼 제출 시: 선택 0개여도 서버에 빈 배열 전송 (완전 해제 의도 반영)
+  form.addEventListener("submit", () => syncHidden());
+})();
+</script>
+{% endblock %}
