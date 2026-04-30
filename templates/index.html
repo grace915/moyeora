@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}새 약속 만들기{% endblock %}
+
+{% block content %}
+<section class="card center">
+  <h1>우리 언제 볼래? 🗓️</h1>
+  <p class="muted" style="margin: 10px 0 22px">
+    버튼을 누르면 약속 링크가 만들어져요.<br/>
+    링크를 친구들에게 공유하고, 각자 가능한 날을 고르면<br/>
+    <strong>모두 다 되는 날</strong> 리스트가 자동으로 나옵니다.
+  </p>
+
+  <form method="post" action="{{ url_for('new_appointment') }}">
+    <button type="submit" class="btn-primary">새 약속 링크 만들기 →</button>
+  </form>
+</section>
+{% endblock %}
