@@ -11,11 +11,5 @@ services:
         generateValue: true
       - key: FLASK_DEBUG
         value: "0"
-      - key: DB_PATH
-        value: /var/data/moyeora.db
       - key: PYTHON_VERSION
         value: 3.12.5
-    disk:
-      name: moyeora-data
-      mountPath: /var/data
-      sizeGB: 1
