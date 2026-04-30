@@ -461,6 +461,55 @@ textarea { resize: vertical; }
   -webkit-touch-callout: none;
 }
 
+/* ── 월 네비게이션 (이전/다음 화살표) ─────────────────── */
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--ink);
+  color: var(--accent-3);
+  padding: 8px 14px;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 4px 4px 0 var(--ink);
+  margin-bottom: -10px;
+}
+.cal-nav-title {
+  flex: 1;
+  text-align: center;
+  font-family: "Bagel Fat One", sans-serif;
+  font-size: 1.1rem;
+  letter-spacing: .5px;
+  color: var(--accent-3);
+}
+.cal-nav-btn {
+  background: var(--accent-3);
+  color: var(--ink);
+  border: 2.5px solid var(--ink);
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  font-family: "Bagel Fat One", sans-serif;
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #fff8e6;
+  transition: transform .08s, background .12s;
+}
+.cal-nav-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #fff8e6;
+  transform: translate(-1px, -1px);
+}
+.cal-nav-btn:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+}
+
+/* JS가 .is-current를 붙인 달만 보임 */
+.cal-month { display: none; }
+.cal-month.is-current { display: block; }
+
 /* 월별 포스터 카드 */
 .cal-month {
   position: relative;

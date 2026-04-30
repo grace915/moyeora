@@ -60,6 +60,11 @@
     <div class="cal-container" id="calContainer"
          data-mode="edit"
          data-mine='{{ my_availability | tojson }}'>
+      <div class="cal-nav">
+        <button type="button" class="cal-nav-btn" data-dir="prev" aria-label="이전 달">‹</button>
+        <span class="cal-nav-title"></span>
+        <button type="button" class="cal-nav-btn" data-dir="next" aria-label="다음 달">›</button>
+      </div>
       {% for m in months %}
       <div class="cal-month" data-month="{{ m.month }}">
         <div class="cal-poster-head">
@@ -73,7 +78,7 @@
         </div>
         <div class="cal-grid">
           {% for wd in weekday_labels %}
-            <div class="cal-wd {% if loop.index0 == 5 %}sat{% elif loop.index0 == 6 %}sun{% endif %}">{{ wd }}</div>
+            <div class="cal-wd {% if loop.index0 == 0 %}sun{% elif loop.index0 == 6 %}sat{% endif %}">{{ wd }}</div>
           {% endfor %}
           {% for week in m.weeks %}
             {% for cell in week %}
@@ -171,6 +176,11 @@
   <p class="muted small">색이 진할수록 더 많은 사람이 가능해요. 마우스를 올리면 누가 가능한지 보여요.</p>
 
   <div class="cal-container" data-mode="view">
+    <div class="cal-nav">
+      <button type="button" class="cal-nav-btn" data-dir="prev" aria-label="이전 달">‹</button>
+      <span class="cal-nav-title"></span>
+      <button type="button" class="cal-nav-btn" data-dir="next" aria-label="다음 달">›</button>
+    </div>
     {% for m in months %}
     <div class="cal-month" data-month="{{ m.month }}">
       <div class="cal-poster-head">
@@ -184,7 +194,7 @@
       </div>
       <div class="cal-grid">
         {% for wd in weekday_labels %}
-          <div class="cal-wd {% if loop.index0 == 5 %}sat{% elif loop.index0 == 6 %}sun{% endif %}">{{ wd }}</div>
+          <div class="cal-wd {% if loop.index0 == 0 %}sun{% elif loop.index0 == 6 %}sat{% endif %}">{{ wd }}</div>
         {% endfor %}
         {% for week in m.weeks %}
           {% for cell in week %}
@@ -233,6 +243,42 @@
   // URL 해시로 초기 탭 결정 (예: #all)
   const initial = (location.hash || '').replace('#', '');
   if (['pick', 'all', 'status'].includes(initial)) activate(initial);
+
+  // ── 캘린더 월 네비게이션 (한 번에 한 달만 표시) ──────
+  document.querySelectorAll('.cal-container').forEach(container => {
+    const months = container.querySelectorAll('.cal-month');
+    if (months.length === 0) return;
+    const titleEl = container.querySelector('.cal-nav-title');
+    const prevBtn = container.querySelector('.cal-nav-btn[data-dir="prev"]');
+    const nextBtn = container.querySelector('.cal-nav-btn[data-dir="next"]');
+
+    // 오늘이 속한 달을 기본으로
+    const today = new Date();
+    const todayY = today.getFullYear();
+    const todayM = today.getMonth() + 1;
+    let idx = 0;
+    months.forEach((mEl, i) => {
+      const yEl = mEl.querySelector('.cal-year');
+      const nEl = mEl.querySelector('.cal-month-ko');
+      const y = yEl ? parseInt(yEl.textContent.trim(), 10) : 0;
+      const mn = nEl ? parseInt(nEl.textContent, 10) : 0;
+      if (y === todayY && mn === todayM) idx = i;
+    });
+
+    function show(i) {
+      idx = Math.max(0, Math.min(months.length - 1, i));
+      months.forEach((mEl, j) => mEl.classList.toggle('is-current', j === idx));
+      const cur = months[idx];
+      const yEl = cur.querySelector('.cal-year');
+      const nEl = cur.querySelector('.cal-month-ko');
+      if (titleEl) titleEl.textContent = `${(yEl?.textContent || '').trim()} · ${(nEl?.textContent || '').trim()}`;
+      if (prevBtn) prevBtn.disabled = (idx === 0);
+      if (nextBtn) nextBtn.disabled = (idx === months.length - 1);
+    }
+    if (prevBtn) prevBtn.addEventListener('click', () => show(idx - 1));
+    if (nextBtn) nextBtn.addEventListener('click', () => show(idx + 1));
+    show(idx);
+  });
 
   // ── 공유 링크 복사 ─────────────────────────────────────
   const copyBtn = document.getElementById("copyBtn");

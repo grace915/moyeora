@@ -21,7 +21,7 @@ app.config["MAX_CONTENT_LENGTH"] = 1 * 1024 * 1024
 
 db.init_db()
 
-WEEKDAYS_KOR = ["월", "화", "수", "목", "금", "토", "일"]
+WEEKDAYS_KOR = ["일", "월", "화", "수", "목", "금", "토"]
 
 # 캘린더 표시 범위 (오늘부터 N일)
 CALENDAR_DAYS = 90
@@ -59,7 +59,7 @@ def build_calendar_months(range_start: date, range_end: date) -> list[dict]:
     months = []
     cursor = date(range_start.year, range_start.month, 1)
     while cursor <= range_end:
-        cal = calendar.Calendar(firstweekday=0)  # 월요일 시작
+        cal = calendar.Calendar(firstweekday=6)  # 일요일 시작
         weeks_raw = cal.monthdatescalendar(cursor.year, cursor.month)
         weeks = []
         for week in weeks_raw:
